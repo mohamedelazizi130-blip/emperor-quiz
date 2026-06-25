@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#030014">
+<title>إمبراطور المعرفة</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --gold:#FFD700;--gold2:#FFA500;--gold3:#FFEC8B;
+  --dark:#030014;--card:rgba(15,10,40,0.85);
+  --text:#F0E6FF;--text2:rgba(240,230,255,0.7);--text3:rgba(240,230,255,0.35);
+  --purple:#7B2FBE;--blue:#1A237E;--teal:#00BCD4;
+  --correct:#00E676;--wrong:#FF1744;
+}
+html,body{height:100%;overflow-x:hidden;touch-action:manipulation}
+body{font-family:'Cairo',sans-serif;background:var(--dark);color:var(--text);min-height:100vh}
+
+/* ===== EPIC BACKGROUND ===== */
+#bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.app{position:relative;z-index:1}
+
+/* ===== SCREENS ===== */
+.screen{display:none;flex-direction:column;align-items:center;min-height:100vh;padding:20px 16px 30px;overflow-y:auto}
+.screen.active{display:flex}
+.quiz-screen{display:none;flex-direction:column;align-items:center;min-height:100vh;padding:20px 12px 30px;padding-top:max(env(safe-area-inset-top,20px),20px)}
+.quiz-screen.active{display:flex}
+
+/* ===== HOME SCREEN ===== */
+.crown-wrap{position:relative;text-align:center;margin:10px 0 6px}
+.crown-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:120px;height:120px;background:radial-gradient(circle,rgba(255,215,0,0.4),transparent 70%);border-radius:50%;animation:crownPulse 2s ease-in-out infinite}
+@keyframes crownPulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.7}50%{transform:translate(-50%,-50%) scale(1.3);opacity:1}}
+.crown-icon{font-size:60px;position:relative;z-index:1;color:#FFD700;text-shadow:0 0 20px #FFD700,0 0 40px #FFA500;animation:float 3s ease-in-out infinite;font-family:'Cairo',sans-serif;font-weight:900;line-height:1}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.game-title{font-family:'Cinzel Decorative',serif;font-size:clamp(18px,5vw,34px);background:linear-gradient(135deg,#FFD700,#FFF,#FFD700,#FFA500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;letter-spacing:2px;line-height:1.3;margin-bottom:2px;text-shadow:none;animation:titleShine 3s linear infinite;background-size:200%}
+@keyframes titleShine{0%{background-position:0%}100%{background-position:200%}}
+.game-subtitle{font-family:'Cinzel',serif;font-size:10px;letter-spacing:8px;color:var(--text3);text-align:center;margin-bottom:14px}
+
+/* LANG */
+.lang-row{display:flex;gap:6px;margin-bottom:14px;background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.2);border-radius:50px;padding:4px}
+.lang-btn{padding:8px 20px;border-radius:50px;border:none;cursor:pointer;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;transition:all .3s;background:transparent;color:var(--text3);min-height:38px}
+.lang-btn.on{background:linear-gradient(135deg,#FFD700,#FFA500);color:#030014;box-shadow:0 4px 15px rgba(255,215,0,0.4)}
+
+/* RANK DISPLAY */
+.rank-display{width:100%;max-width:440px;background:linear-gradient(135deg,rgba(123,47,190,0.3),rgba(26,35,126,0.3));border:1px solid rgba(255,215,0,0.3);border-radius:20px;padding:14px;margin-bottom:12px;text-align:center;position:relative;overflow:hidden}
+.rank-display::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,215,0,0.05),transparent);pointer-events:none}
+.rank-name{font-family:'Cinzel',serif;font-size:22px;color:var(--gold);font-weight:700;margin-bottom:4px}
+.rank-stars{font-size:18px;letter-spacing:4px;margin-bottom:8px}
+.xp-bar-wrap{width:100%}
+.xp-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px}
+.xp-bg{height:8px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,0.3)}
+.xp-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#7B2FBE,#FFD700,#FFA500);transition:width 1s ease;box-shadow:0 0 10px rgba(255,215,0,0.5)}
+
+/* STATS */
+.stats-row{display:flex;gap:8px;margin-bottom:12px;width:100%;max-width:440px}
+.stat-box{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.15);border-radius:14px;padding:10px 6px;text-align:center;backdrop-filter:blur(10px)}
+.stat-v{font-size:20px;font-weight:800;color:var(--gold)}
+.stat-l{font-size:8px;color:var(--text3);margin-top:2px;letter-spacing:1px;text-transform:uppercase}
+
+/* SECTIONS */
+.sections-title{font-family:'Cinzel',serif;font-size:13px;color:var(--text3);letter-spacing:4px;margin-bottom:10px;text-transform:uppercase}
+.sections-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:440px;margin-bottom:16px}
+.sec-card{border-radius:16px;padding:14px 8px 12px;cursor:pointer;text-align:center;position:relative;overflow:hidden;min-height:110px;transition:all .25s;border:1px solid rgba(255,215,0,0.15);background:rgba(15,10,40,0.7);backdrop-filter:blur(10px)}
+.sec-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .25s;background:linear-gradient(135deg,rgba(255,215,0,0.1),rgba(123,47,190,0.1))}
+.sec-card:active:not(.locked){transform:scale(0.93);background:rgba(255,215,0,0.08)}
+.sec-card.locked{opacity:.35;cursor:not-allowed;filter:grayscale(0.5)}
+.sec-glow{position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:60px;height:60px;border-radius:50%;opacity:0.3;transition:opacity .25s}
+.sec-card:active .sec-glow{opacity:0.6}
+.sec-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;margin:0 auto 8px;border:2px solid rgba(255,255,255,0.2);color:#fff;font-family:'Cairo',sans-serif}
+.sec-name{font-size:11px;font-weight:700;color:var(--gold);margin-bottom:2px;position:relative;z-index:1}
+.sec-pts{font-size:9px;color:var(--text3);position:relative;z-index:1}
+.sec-bar{height:3px;background:rgba(255,215,0,0.1);border-radius:99px;margin-top:6px;overflow:hidden;position:relative;z-index:1}
+.sec-bar-fill{height:100%;background:linear-gradient(90deg,#7B2FBE,#FFD700);border-radius:99px}
+.lock-overlay{position:absolute;top:6px;right:6px;font-size:12px}
+.unlock-req{font-size:8px;color:var(--text3);margin-top:4px;position:relative;z-index:1}
+
+/* ===== LEVEL SELECT ===== */
+.level-header{text-align:center;margin-bottom:18px;width:100%}
+.level-icon{font-size:48px;margin-bottom:6px;filter:drop-shadow(0 0 15px rgba(255,215,0,0.5))}
+.level-title{font-family:'Cinzel',serif;font-size:20px;color:var(--gold);margin-bottom:4px}
+.level-sub{font-size:11px;color:var(--text3);letter-spacing:3px;text-transform:uppercase}
+.lv-list{display:flex;flex-direction:column;gap:10px;width:100%;max-width:420px}
+.lv-item{border-radius:18px;padding:16px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all .2s;position:relative;overflow:hidden;border:1px solid;backdrop-filter:blur(10px)}
+.lv-item.easy{border-color:rgba(0,230,118,0.3);background:rgba(0,230,118,0.05)}
+.lv-item.medium{border-color:rgba(255,215,0,0.3);background:rgba(255,215,0,0.05)}
+.lv-item.hard{border-color:rgba(255,23,68,0.3);background:rgba(255,23,68,0.05)}
+.lv-item.locked{opacity:.35;cursor:not-allowed;filter:grayscale(0.5)}
+.lv-item:active:not(.locked){transform:scale(0.97)}
+.lv-item::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s}
+.lv-item.easy::before{background:rgba(0,230,118,0.05)}
+.lv-item.medium::before{background:rgba(255,215,0,0.05)}
+.lv-item.hard::before{background:rgba(255,23,68,0.05)}
+.lv-stars{font-size:22px;flex-shrink:0;width:40px;text-align:center}
+.lv-info{flex:1}
+.lv-name{font-size:16px;font-weight:800;margin-bottom:2px}
+.lv-item.easy .lv-name{color:#00E676}
+.lv-item.medium .lv-name{color:#FFD700}
+.lv-item.hard .lv-name{color:#FF1744}
+.lv-desc{font-size:11px;color:var(--text3)}
+.lv-pts-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:4px;display:inline-block}
+.lv-item.easy .lv-pts-badge{background:rgba(0,230,118,0.15);color:#00E676}
+.lv-item.medium .lv-pts-badge{background:rgba(255,215,0,0.15);color:#FFD700}
+.lv-item.hard .lv-pts-badge{background:rgba(255,23,68,0.15);color:#FF1744}
+.lv-best{font-size:9px;color:var(--gold);margin-top:3px}
+.lv-arrow{font-size:22px;color:var(--text3);flex-shrink:0}
+.lv-req-txt{font-size:10px;color:var(--text3)}
+
+/* ===== QUIZ SCREEN ===== */
+.q-topbar{width:100%;max-width:600px;display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.q-back{background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.2);color:var(--gold);padding:10px 16px;border-radius:50px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;min-height:44px;transition:all .2s;white-space:nowrap}
+.q-back:active{background:rgba(255,215,0,0.1)}
+.q-sec-title{font-family:'Cinzel',serif;font-size:18px;color:var(--gold2);flex:1;text-align:center;font-weight:700}
+.q-sec-icon{font-size:22px;flex-shrink:0}
+
+/* STATS BAR */
+.q-stats{display:flex;gap:6px;width:100%;max-width:600px;margin-bottom:12px}
+.q-stat{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.12);border-radius:12px;padding:9px 4px;text-align:center;backdrop-filter:blur(5px)}
+.q-stat-v{font-size:17px;font-weight:800;color:var(--gold)}
+.q-stat-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+.q-stat.danger .q-stat-v{color:#FF1744;animation:blink .4s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* PROGRESS */
+.q-progress{width:100%;max-width:600px;height:4px;background:rgba(255,255,255,0.06);border-radius:99px;margin-bottom:10px;overflow:hidden}
+.q-progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#7B2FBE,#FFD700);transition:width .5s;box-shadow:0 0 8px rgba(255,215,0,0.4)}
+
+/* QUESTION CARD */
+.q-card{width:100%;max-width:600px;border-radius:20px;padding:18px 16px;margin-bottom:10px;position:relative;overflow:hidden;border:1px solid rgba(255,215,0,0.2);background:rgba(15,10,40,0.85);backdrop-filter:blur(20px)}
+.q-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#FFD700,#7B2FBE,transparent)}
+.q-card::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top,rgba(255,215,0,0.04),transparent 70%);pointer-events:none}
+.q-cat{font-size:9px;color:var(--gold2);letter-spacing:4px;text-transform:uppercase;margin-bottom:10px;opacity:.8}
+.q-num{font-size:11px;color:var(--text3);margin-bottom:6px}
+.q-text{font-size:19px;font-weight:700;color:#F8F0FF;line-height:1.65}
+
+/* OPTIONS */
+.opts-list{width:100%;max-width:600px;display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.opt{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:0;cursor:pointer;font-family:'Cairo',sans-serif;font-size:15px;color:var(--text);text-align:right;transition:all .15s;min-height:56px;display:flex;align-items:center;overflow:hidden;width:100%;position:relative}
+.opt-letter{width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;background:rgba(255,255,255,0.05);border-left:1px solid rgba(255,255,255,0.08);color:var(--text3)}
+.opt-text{flex:1;padding:12px 14px;text-align:right}
+.opt:active:not(:disabled){transform:scale(0.98)}
+.opt.selected{border-color:rgba(255,215,0,0.5);background:rgba(255,215,0,0.06)}
+.opt.correct{border-color:var(--correct)!important;background:rgba(0,230,118,0.1)!important;color:#00E676}
+.opt.correct .opt-letter{background:rgba(0,230,118,0.2);color:#00E676;border-color:rgba(0,230,118,0.3)}
+.opt.wrong{border-color:var(--wrong)!important;background:rgba(255,23,68,0.1)!important;color:#FF6B8A}
+.opt.wrong .opt-letter{background:rgba(255,23,68,0.2);color:#FF6B8A;border-color:rgba(255,23,68,0.3)}
+.opt:disabled{cursor:default;transform:none}
+
+/* FEEDBACK */
+.feedback{width:100%;max-width:600px;border-radius:14px;padding:12px 16px;font-size:13px;display:none;margin-bottom:10px;line-height:1.6;border:1px solid;font-weight:600}
+.feedback.show{display:block}
+.feedback.ok{background:rgba(0,230,118,0.08);border-color:rgba(0,230,118,0.3);color:#00E676}
+.feedback.no{background:rgba(255,23,68,0.08);border-color:rgba(255,23,68,0.3);color:#FF6B8A}
+
+/* NEXT BTN */
+.next-btn{display:none;width:100%;max-width:600px;padding:16px;font-family:'Cairo',sans-serif;font-size:16px;font-weight:800;border:none;border-radius:50px;cursor:pointer;transition:all .2s;min-height:56px;position:relative;overflow:hidden}
+.next-btn.show{display:block}
+.next-btn-inner{background:linear-gradient(135deg,#7B2FBE,#FFD700,#FFA500);position:absolute;inset:0;z-index:0;transition:opacity .2s}
+.next-btn span{position:relative;z-index:1;color:#030014;font-weight:800}
+.next-btn:active{transform:scale(0.97)}
+
+/* ===== END SCREEN ===== */
+.end-trophy{font-size:72px;margin:16px 0 8px;color:var(--gold);text-shadow:0 0 30px #FFD700,0 0 60px #FFA500;animation:float 2s ease-in-out infinite;font-family:'Cairo',sans-serif;font-weight:900}
+.end-rank-badge{font-family:'Cinzel',serif;font-size:13px;letter-spacing:4px;color:var(--text3);text-transform:uppercase;margin-bottom:6px}
+.end-title{font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--gold);margin-bottom:16px;text-align:center}
+.end-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%;max-width:420px;margin-bottom:14px}
+.end-stat{background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.15);border-radius:14px;padding:12px 6px;text-align:center;backdrop-filter:blur(10px)}
+.end-stat-v{font-size:24px;font-weight:800;color:var(--gold)}
+.end-stat-l{font-size:8px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px}
+
+/* ACCURACY RING */
+.acc-ring-wrap{margin-bottom:14px;position:relative;width:100px;height:100px}
+.acc-ring-wrap svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+.acc-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.acc-pct{font-size:22px;font-weight:800;color:var(--gold)}
+.acc-lbl{font-size:9px;color:var(--text3)}
+
+.end-msg{font-size:14px;color:var(--text2);margin-bottom:18px;text-align:center;max-width:340px;line-height:1.7;padding:0 8px}
+.end-btns{display:flex;flex-direction:column;gap:8px;width:100%;max-width:420px}
+.end-btn{padding:15px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:800;border-radius:50px;cursor:pointer;transition:all .2s;min-height:54px;border:none;width:100%}
+.end-btn.primary{background:linear-gradient(135deg,#7B2FBE,#FFD700);color:#030014}
+.end-btn.secondary{background:rgba(255,255,255,0.05);color:var(--gold);border:1px solid rgba(255,215,0,0.25)}
+.end-btn:active{transform:scale(0.97)}
+
+/* GHOST BTN */
+.ghost-btn{background:transparent;border:1px solid rgba(255,215,0,0.2);color:var(--gold);padding:12px 24px;border-radius:50px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;margin-top:14px;transition:all .2s;min-height:44px}
+.ghost-btn:active{background:rgba(255,215,0,0.08)}
+
+/* COMBO POP */
+.combo-pop{position:fixed;top:22%;left:50%;transform:translateX(-50%);font-family:'Cinzel',serif;font-size:22px;pointer-events:none;z-index:999;opacity:0;transition:all .4s;text-align:center}
+.combo-pop.show{opacity:1;transform:translateX(-50%) translateY(-20px)}
+
+/* LEVEL UP */
+.levelup-overlay{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);opacity:0;pointer-events:none;transition:opacity .4s}
+.levelup-overlay.show{opacity:1;pointer-events:auto}
+.levelup-box{background:linear-gradient(135deg,rgba(123,47,190,0.9),rgba(3,0,20,0.95));border:2px solid var(--gold);border-radius:24px;padding:32px 24px;text-align:center;max-width:320px;width:90%}
+.levelup-icon{font-size:60px;margin-bottom:10px;animation:float 2s ease-in-out infinite}
+.levelup-title{font-family:'Cinzel Decorative',serif;font-size:18px;color:var(--gold);margin-bottom:6px}
+.levelup-rank{font-family:'Cinzel',serif;font-size:28px;color:#FFF;font-weight:700;margin-bottom:12px}
+.levelup-btn{padding:12px 32px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#030014;border:none;border-radius:50px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:800;cursor:pointer}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:rgba(255,215,0,0.3);border-radius:2px}
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<div class="app">
+
+<!-- ===== HOME ===== -->
+<div class="screen active" id="S_home">
+  <div class="crown-wrap">
+    <div class="crown-glow"></div>
+    <div class="crown-icon">&#9813;</div>
+  </div>
+  <div class="game-title" id="T_title">إمبراطور المعرفة</div>
+  <div class="game-subtitle">EMPEROR OF KNOWLEDGE</div>
+  <div class="lang-row">
+    <button class="lang-btn on" onclick="setLang('ar')">العربية</button>
+    <button class="lang-btn" onclick="setLang('en')">English</button>
+  </div>
+  <div class="rank-display">
+    <div class="rank-name" id="H_rankName">طالب</div>
+    <div class="rank-stars" id="H_rankStars">⭐☆☆☆☆</div>
+    <div class="xp-bar-wrap">
+      <div class="xp-labels"><span id="H_xpCur">0 XP</span><span id="H_xpNext">200 XP للمستوى التالي</span></div>
+      <div class="xp-bg"><div class="xp-fill" id="H_xpBar" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-v" id="H_score">0</div><div class="stat-l" id="L_pts">النقاط</div></div>
+    <div class="stat-box"><div class="stat-v" id="H_correct">0</div><div class="stat-l" id="L_corr">صحيح</div></div>
+    <div class="stat-box"><div class="stat-v" id="H_streak">0</div><div class="stat-l" id="L_streak">أفضل سلسلة</div></div>
+    <div class="stat-box"><div class="stat-v" id="H_acc">0%</div><div class="stat-l" id="L_acc">الدقة</div></div>
+  </div>
+  <div class="sections-title" id="L_secs">اختر الفئة</div>
+  <div class="sections-grid" id="secGrid"></div>
+</div>
+
+<!-- ===== LEVEL SELECT ===== -->
+<div class="screen" id="S_level">
+  <div class="level-header">
+    <div class="level-icon" id="LS_icon">🧮</div>
+    <div class="level-title" id="LS_name">الرياضيات</div>
+    <div class="level-sub" id="L_chooseLv">اختر المستوى</div>
+  </div>
+  <div class="lv-list" id="lvList"></div>
+  <button class="ghost-btn" onclick="go('home')" id="L_backLv">← رجوع</button>
+</div>
+
+<!-- ===== QUIZ ===== -->
+<div class="quiz-screen" id="S_quiz">
+  <div class="q-topbar">
+    <button class="q-back" onclick="confirmBack()" id="L_backQ">← رجوع</button>
+    <div class="q-sec-title" id="Q_secTitle">—</div>
+    <div class="q-sec-icon" id="Q_secIcon">🧮</div>
+  </div>
+  <div class="q-stats">
+    <div class="q-stat"><div class="q-stat-v" id="Q_score">0</div><div class="q-stat-l" id="L_qsc">نقاط</div></div>
+    <div class="q-stat"><div class="q-stat-v" id="Q_num">1/10</div><div class="q-stat-l" id="L_qpr">تقدم</div></div>
+    <div class="q-stat"><div class="q-stat-v" id="Q_streak">0 x</div><div class="q-stat-l" id="L_qstr">متتالي</div></div>
+    <div class="q-stat" id="timerStat"><div class="q-stat-v" id="Q_timer">30</div><div class="q-stat-l" id="L_qtm">ثانية</div></div>
+  </div>
+  <div class="q-progress"><div class="q-progress-fill" id="Q_prog" style="width:10%"></div></div>
+  <div class="q-card">
+    <div class="q-cat" id="Q_cat">—</div>
+    <div class="q-text" id="Q_text">...</div>
+  </div>
+  <div class="opts-list" id="optsList"></div>
+  <div class="feedback" id="feedbackBox"></div>
+  <button class="next-btn" id="nextBtn" onclick="nextQ()">
+    <div class="next-btn-inner"></div>
+    <span id="L_next">التالي ←</span>
+  </button>
+</div>
+
+<!-- ===== END ===== -->
+<div class="screen" id="S_end">
+  <div class="end-trophy" id="E_trophy">🏆</div>
+  <div class="end-rank-badge" id="E_rank">إمبراطور</div>
+  <div class="end-title" id="E_title">انتهى التحدي!</div>
+  <div class="acc-ring-wrap">
+    <svg width="100" height="100" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+      <circle id="accRing" cx="50" cy="50" r="42" fill="none" stroke="url(#ringGrad)" stroke-width="8" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="264" style="transition:stroke-dashoffset 1.5s ease"/>
+      <defs><linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#7B2FBE"/><stop offset="100%" stop-color="#FFD700"/></linearGradient></defs>
+    </svg>
+    <div class="acc-center"><div class="acc-pct" id="E_accPct">0%</div><div class="acc-lbl" id="L_eacc">الدقة</div></div>
+  </div>
+  <div class="end-stats">
+    <div class="end-stat"><div class="end-stat-v" id="E_score">0</div><div class="end-stat-l" id="L_esc">النقاط</div></div>
+    <div class="end-stat"><div class="end-stat-v" id="E_correct">0/10</div><div class="end-stat-l" id="L_ecor">صحيح</div></div>
+    <div class="end-stat"><div class="end-stat-v" id="E_combo">0</div><div class="end-stat-l" id="L_ecmb">كومبو</div></div>
+  </div>
+  <div class="end-msg" id="E_msg">—</div>
+  <div class="end-btns">
+    <button class="end-btn primary" id="E_retry" onclick="retryLevel()">إعادة المحاولة</button>
+    <button class="end-btn secondary" id="E_home" onclick="go('home')">القائمة الرئيسية</button>
+  </div>
+</div>
+
+<!-- COMBO POP -->
+<div class="combo-pop" id="comboPop"></div>
+
+<!-- LEVEL UP OVERLAY -->
+<div class="levelup-overlay" id="levelupOverlay">
+  <div class="levelup-box">
+    <div class="levelup-icon" style="color:#FFD700;text-shadow:0 0 20px #FFD700;font-size:50px;font-family:Cairo,sans-serif">★</div>
+    <div class="levelup-title" id="LU_title">ترقية!</div>
+    <div class="levelup-rank" id="LU_rank">متعلم</div>
+    <button class="levelup-btn" onclick="closeLevelUp()">متابعة →</button>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const T={
+  ar:{title:"إمبراطور المعرفة",pts:"نقاط",corr:"صحيح",streak:"أفضل سلسلة",acc:"الدقة",secs:"اختر الفئة",chooseLv:"اختر المستوى",back:"← رجوع",sc:"نقاط",pr:"تقدم",str:"متتالي",tm:"ثانية",next:"التالي ←",esc:"النقاط",ecor:"صحيح",ecmb:"كومبو",eacc:"الدقة",cf:"✓ صحيح!",wf:"✗ خطأ! الإجابة: ",tf:"⏰ انتهى الوقت! الإجابة: ",lvNames:["مبتدئ","محترف","أسطورة"],lvDescs:["أسئلة تمهيدية","تحدٍ متوسط","صعوبة قصوى"],lvPts:["10 نقطة/سؤال","20 نقطة/سؤال","40 نقطة/سؤال"],lvTimes:[30,20,12],ranks:["طالب","متعلم","متمكن","خبير","إمبراطور","إله المعرفة"],rankStars:["⭐☆☆☆☆","⭐⭐☆☆☆","⭐⭐⭐☆☆","⭐⭐⭐⭐☆","⭐⭐⭐⭐⭐","👑👑👑👑👑"],rankMsgs:["استمر في التعلم! الطريق يبدأ من هنا","جيد! واصل التدريب يومياً","رائع! معرفتك في نمو مستمر","مذهل! أنت من النخبة","إمبراطور حقيقي لا يُهزم!","إله المعرفة! لا أحد يضاهيك!"],unlockReq:"يحتاج {n} نقطة للفتح",lvupTitle:"مبروك! ترقية جديدة!"},
+  en:{title:"Emperor of Knowledge",pts:"Points",corr:"Correct",streak:"Best Streak",acc:"Accuracy",secs:"Choose Category",chooseLv:"Choose Level",back:"← Back",sc:"Score",pr:"Progress",str:"Streak",tm:"Sec",next:"Next →",esc:"Score",ecor:"Correct",ecmb:"Combo",eacc:"Accuracy",cf:"✓ Correct!",wf:"✗ Wrong! Answer: ",tf:"⏰ Time's up! Answer: ",lvNames:["Beginner","Pro","Legend"],lvDescs:["Warm-up questions","Medium challenge","Extreme difficulty"],lvPts:["10 pts/question","20 pts/question","40 pts/question"],lvTimes:[30,20,12],ranks:["Student","Learner","Skilled","Expert","Emperor","God of Knowledge"],rankStars:["⭐☆☆☆☆","⭐⭐☆☆☆","⭐⭐⭐☆☆","⭐⭐⭐⭐☆","⭐⭐⭐⭐⭐","👑👑👑👑👑"],rankMsgs:["Keep learning! The journey starts here","Good! Keep training daily","Amazing! Your knowledge keeps growing","Incredible! You're elite!","True Emperor! Unbeatable!","God of Knowledge! None can match you!"],unlockReq:"Needs {n} pts to unlock",lvupTitle:"Level Up!"}
+};
+
+const SECS=[
+  {id:"math",icon:"∑",ar:"الرياضيات",en:"Mathematics",color:"#00BCD4",unlock:0},
+  {id:"general",icon:"★",ar:"ثقافة عامة",en:"General Culture",color:"#7B2FBE",unlock:0},
+  {id:"cinema",icon:"▶",ar:"سينما",en:"Cinema",color:"#E91E63",unlock:0},
+  {id:"lit",icon:"✍",ar:"أدب",en:"Literature",color:"#FF9800",unlock:0},
+  {id:"history",icon:"⌛",ar:"تاريخ",en:"History",color:"#8D6E63",unlock:0},
+  {id:"football",icon:"⚽",ar:"كرة القدم",en:"Football",color:"#4CAF50",unlock:0},
+  {id:"geo",icon:"◎",ar:"جغرافيا",en:"Geography",color:"#03A9F4",unlock:0},
+  {id:"lang",icon:"A",ar:"اللغات",en:"Languages",color:"#AB47BC",unlock:200},
+  {id:"physics",icon:"⚛",ar:"فيزياء",en:"Physics",color:"#2196F3",unlock:400}
+];
+
+const XP=[0,200,500,1000,2000,5000];
+
+const QS={
+math:{
+easy:[{q:"كم يساوي 7 × 8؟",e:"What is 7 × 8?",o:["54","56","48","64"],a:1},{q:"الجذر التربيعي لـ 81؟",e:"What is √81?",o:["7","8","9","10"],a:2},{q:"15 + 28 = ؟",e:"15 + 28 = ?",o:["41","42","43","44"],a:2},{q:"25% من 200 = ؟",e:"25% of 200 = ?",o:["25","40","50","75"],a:2},{q:"12² = ؟",e:"12² = ?",o:["122","132","144","156"],a:2},{q:"عدد أضلاع المسدس؟",e:"Sides of a hexagon?",o:["5","6","7","8"],a:1},{q:"100 ÷ 4 = ؟",e:"100 ÷ 4 = ?",o:["22","24","25","28"],a:2},{q:"عدد أولي بين 10 و20؟",e:"Prime between 10 and 20?",o:["11","12","14","16"],a:0},{q:"3³ = ؟",e:"3³ = ?",o:["27","24","18","36"],a:0},{q:"مجموع زوايا المثلث؟",e:"Sum of triangle angles?",o:["90°","180°","270°","360°"],a:1}],
+medium:[{q:"قيمة π تقريباً؟",e:"Value of π?",o:["2.14","3.14","4.14","5.14"],a:1},{q:"سلسلة فيبوناتشي بعد 13؟",e:"Fibonacci after 13?",o:["18","20","21","24"],a:2},{q:"مساحة دائرة نصف قطرها 5؟",e:"Area of circle r=5?",o:["25π","10π","15π","20π"],a:0},{q:"2¹⁰ = ؟",e:"2¹⁰ = ?",o:["512","1024","2048","256"],a:1},{q:"مشتقة x² = ؟",e:"Derivative of x²?",o:["x","2x","x²","2"],a:1},{q:"الأساس الطبيعي e ≈ ؟",e:"Natural base e ≈ ?",o:["1.71","2.71","3.14","1.41"],a:1},{q:"مجموع 1+2+...+10 = ؟",e:"Sum 1+2+...+10?",o:["45","50","55","60"],a:2},{q:"sin(90°) = ؟",e:"sin(90°) = ?",o:["0","0.5","1","-1"],a:2},{q:"log₁₀(1000) = ؟",e:"log₁₀(1000) = ?",o:["2","3","4","5"],a:1},{q:"عدد حافات المكعب؟",e:"Edges of a cube?",o:["8","10","12","16"],a:2}],
+hard:[{q:"نظرية فيثاغورس؟",e:"Pythagorean theorem?",o:["a²+b²=c²","a+b=c","a²-b²=c","2a+b=c²"],a:0},{q:"تكامل sin(x) = ؟",e:"∫sin(x)dx = ?",o:["-cos(x)+C","cos(x)+C","sin(x)+C","-sin(x)+C"],a:0},{q:"محدد [[1,2],[3,4]] = ؟",e:"det[[1,2],[3,4]] = ?",o:["-2","-1","0","2"],a:0},{q:"lim (sinx/x) عند x→0؟",e:"lim(sinx/x) as x→0?",o:["0","0.5","1","∞"],a:2},{q:"عدد الأعداد الأولية أقل من 20؟",e:"Primes below 20?",o:["6","7","8","9"],a:2},{q:"مشتقة ln(x) = ؟",e:"Derivative of ln(x)?",o:["1/x","ln(x)","x","e^x"],a:0},{q:"متسلسلة هندسية لا نهائية تتقارب عندما؟",e:"Geometric series converges when?",o:["|r|<1","|r|>1","r=0","r=1"],a:0},{q:"عدد أوجه الإيكوسيدرون؟",e:"Faces of an icosahedron?",o:["12","16","20","24"],a:2},{q:"AI = ؟ (مصفوفة محايدة)",e:"Identity matrix: AI = ?",o:["I","A","0","2A"],a:1},{q:"حل x²-5x+6=0؟",e:"Solve x²-5x+6=0?",o:["x=1,6","x=2,3","x=-2,-3","x=0,5"],a:1}]},
+general:{
+easy:[{q:"عاصمة فرنسا؟",e:"Capital of France?",o:["London","Paris","Berlin","Rome"],a:1},{q:"عدد قارات العالم؟",e:"Number of continents?",o:["5","6","7","8"],a:2},{q:"أكبر محيط؟",e:"Largest ocean?",o:["Indian","Atlantic","Pacific","Arctic"],a:2},{q:"أيام السنة الكبيسة؟",e:"Days in a leap year?",o:["363","364","365","366"],a:3},{q:"الرمز الكيميائي للذهب؟",e:"Chemical symbol for Gold?",o:["Go","Gd","Au","Ag"],a:2},{q:"عدد ألوان الطيف؟",e:"Colors of the rainbow?",o:["5","6","7","8"],a:2},{q:"أعلى جبل في العالم؟",e:"Highest mountain?",o:["K2","Everest","Kilimanjaro","Matterhorn"],a:1},{q:"أصغر دولة في العالم؟",e:"Smallest country?",o:["Monaco","Vatican","San Marino","Liechtenstein"],a:1},{q:"أسرع حيوان بري؟",e:"Fastest land animal?",o:["Lion","Tiger","Cheetah","Horse"],a:2},{q:"عدد كواكب المجموعة الشمسية؟",e:"Planets in solar system?",o:["7","8","9","10"],a:1}],
+medium:[{q:"عام الثورة الفرنسية؟",e:"French Revolution year?",o:["1785","1789","1793","1800"],a:1},{q:"مخترع الهاتف؟",e:"Telephone inventor?",o:["Edison","Bell","Tesla","Marconi"],a:1},{q:"طول نهر النيل (كم)؟",e:"Nile River length (km)?",o:["4000","5000","6650","7000"],a:2},{q:"لغة البرازيل الرسمية؟",e:"Brazil official language?",o:["Spanish","English","Portuguese","French"],a:2},{q:"أسرع طائر في العالم؟",e:"Fastest bird?",o:["Eagle","Falcon","Swan","Dove"],a:1},{q:"من اخترع الطائرة؟",e:"Who invented the airplane?",o:["Edison","Wright brothers","Tesla","Bell"],a:1},{q:"عاصمة أستراليا؟",e:"Capital of Australia?",o:["Sydney","Melbourne","Canberra","Brisbane"],a:2},{q:"أبعد كوكب عن الشمس؟",e:"Farthest planet from sun?",o:["Uranus","Saturn","Neptune","Jupiter"],a:2},{q:"نسبة الأكسجين في الهواء؟",e:"Oxygen in air?",o:["15%","21%","25%","30%"],a:1},{q:"من فاز بنوبل مرتين؟",e:"Won Nobel Prize twice?",o:["Einstein","Marie Curie","Fleming","Bohr"],a:1}],
+hard:[{q:"عاصمة كازاخستان؟",e:"Capital of Kazakhstan?",o:["Almaty","Astana","Shymkent","Karaganda"],a:1},{q:"تأسيس الأمم المتحدة؟",e:"UN founding year?",o:["1944","1945","1946","1947"],a:1},{q:"أعمق بحيرة في العالم؟",e:"Deepest lake in the world?",o:["Baikal","Titicaca","Victoria","Tanganyika"],a:0},{q:"الدولة الأكثر كثافة سكانية؟",e:"Most densely populated country?",o:["China","Bangladesh","Monaco","Singapore"],a:2},{q:"أصل كلمة Algebra؟",e:"Origin of the word Algebra?",o:["Greek","Latin","Arabic","Persian"],a:2},{q:"أول دولة تمنح المرأة حق التصويت؟",e:"First women's voting rights?",o:["USA","Britain","New Zealand","France"],a:2},{q:"نظام Bretton Woods تأسس عام؟",e:"Bretton Woods system established?",o:["1939","1944","1950","1960"],a:1},{q:"عدد دول منطقة اليورو 2024؟",e:"Eurozone countries 2024?",o:["17","19","20","21"],a:2},{q:"أقدم حضارة في العالم؟",e:"Oldest civilization?",o:["Egyptian","Mesopotamian","Chinese","Indus"],a:1},{q:"ما هو مبدأ أوكام؟",e:"Occam's Razor states?",o:["Simpler explanations preferred","Complex is better","Evidence rules","All are equal"],a:0}]},
+cinema:{
+easy:[{q:"مخرج Titanic؟",e:"Director of Titanic?",o:["Spielberg","Cameron","Nolan","Scorsese"],a:1},{q:"عام The Lion King الأصلي؟",e:"Original Lion King year?",o:["1992","1994","1996","1998"],a:1},{q:"ممثل Iron Man؟",e:"Iron Man actor?",o:["Chris Evans","Robert Downey Jr","Chris Hemsworth","Mark Ruffalo"],a:1},{q:"الفيلم الأعلى إيراداً في التاريخ؟",e:"All-time highest grossing film?",o:["Avengers: Endgame","Titanic","Avatar","Star Wars"],a:2},{q:"مخرج Lord of the Rings؟",e:"LOTR director?",o:["Spielberg","Peter Jackson","Cameron","Nolan"],a:1},{q:"أول فيلم ديزني متحرك؟",e:"Disney's first animated film?",o:["Cinderella","Snow White","Pinocchio","Fantasia"],a:1},{q:"قرد Aladdin؟",e:"Aladdin's monkey name?",o:["Jasmine","Abu","Iago","Genie"],a:1},{q:"من يمتلك Pixar؟",e:"Pixar is owned by?",o:["Sony","Netflix","Disney","Warner"],a:2},{q:"مدينة Hollywood؟",e:"Hollywood is in?",o:["New York","Chicago","Los Angeles","Las Vegas"],a:2},{q:"بطل The Matrix؟",e:"The Matrix protagonist?",o:["Neo","Morpheus","Trinity","Agent Smith"],a:0}],
+medium:[{q:"ممثل Forrest Gump؟",e:"Forrest Gump actor?",o:["Tom Cruise","Tom Hanks","Brad Pitt","Matt Damon"],a:1},{q:"عام أول Star Wars؟",e:"First Star Wars year?",o:["1975","1977","1979","1981"],a:1},{q:"مخرج Inception؟",e:"Inception director?",o:["Fincher","Nolan","Scorsese","Tarantino"],a:1},{q:"مخرج Pulp Fiction؟",e:"Pulp Fiction director?",o:["Scorsese","Kubrick","Tarantino","Lee"],a:2},{q:"أشهر فيلم Kubrick؟",e:"Kubrick's most iconic film?",o:["Psycho","2001: A Space Odyssey","Alien","Blade Runner"],a:1},{q:"مخرج Schindler's List؟",e:"Director of Schindler's List?",o:["Kubrick","Cameron","Spielberg","Nolan"],a:2},{q:"أفضل فيلم أوسكار 1998؟",e:"Best Picture Oscar 1998?",o:["Schindler's List","Titanic","Braveheart","Forrest Gump"],a:1},{q:"أوسكار أفضل مخرج 2015؟",e:"Best Director Oscar 2015?",o:["Nolan","Cameron","Iñárritu","Fincher"],a:2},{q:"مبتكر شخصية Joker؟",e:"Original Joker creator?",o:["Bob Kane","Bill Finger","Jerry Robinson","Frank Miller"],a:2},{q:"أول فيلم 3D ناجح تجارياً؟",e:"First 3D blockbuster?",o:["Titanic","Avatar","Gravity","Interstellar"],a:1}],
+hard:[{q:"جنسية مخرج Parasite؟",e:"Parasite director's nationality?",o:["Chinese","Japanese","Korean","Taiwanese"],a:2},{q:"السعفة الذهبية 1994؟",e:"Palme d'Or 1994?",o:["Pulp Fiction","Forrest Gump","Shawshank","Speed"],a:0},{q:"أقدم مهرجان سينمائي؟",e:"World's oldest film festival?",o:["Cannes","Berlin","Venice","Toronto"],a:2},{q:"أول فيلم ناطق في التاريخ؟",e:"First talking film?",o:["The Jazz Singer","Metropolis","Sunrise","Nosferatu"],a:0},{q:"مخرج Citizen Kane؟",e:"Director of Citizen Kane?",o:["Hitchcock","Wilder","Orson Welles","Capra"],a:2},{q:"نظرية المؤلف Auteur لمن؟",e:"Auteur theory coined by?",o:["Bazin","Truffaut","Godard","Rohmer"],a:1},{q:"ما هو Dogme 95؟",e:"Dogme 95 is?",o:["Film festival","Danish film movement","Camera tool","European award"],a:1},{q:"أول استخدام CGI في هوليوود؟",e:"First CGI use in Hollywood?",o:["Tron (1982)","Star Wars (1977)","Westworld (1973)","2001 (1968)"],a:2},{q:"ما هو مصطلح Mise-en-scène؟",e:"Mise-en-scène refers to?",o:["Soundtrack","Scene composition","Editing","Lighting only"],a:1},{q:"من فاز بأكثر أوسكار تمثيل؟",e:"Most acting Oscar wins?",o:["Meryl Streep","Katharine Hepburn","Jack Nicholson","Daniel Day-Lewis"],a:1}]},
+lit:{
+easy:[{q:"كاتب 100 عام من العزلة؟",e:"100 Years of Solitude author?",o:["Borges","García Márquez","Fuentes","Cortázar"],a:1},{q:"أشهر مسرحية شكسبير؟",e:"Shakespeare's most famous play?",o:["Macbeth","Othello","Hamlet","Romeo & Juliet"],a:2},{q:"كاتب الإلياذة؟",e:"Author of the Iliad?",o:["Virgil","Plato","Homer","Herodotus"],a:2},{q:"كاتب الجريمة والعقاب؟",e:"Crime and Punishment author?",o:["Tolstoy","Dostoevsky","Chekhov","Gogol"],a:1},{q:"كاتبة Pride & Prejudice؟",e:"Pride & Prejudice author?",o:["Charlotte Brontë","Jane Austen","George Eliot","V. Woolf"],a:1},{q:"كاتب الكوميديا الإلهية؟",e:"Divine Comedy author?",o:["Petrarch","Dante","Boccaccio","Ariosto"],a:1},{q:"أديب عربي حائز على نوبل؟",e:"Arab Nobel Literature laureate?",o:["Naguib Mahfouz","Yusuf Idris","Munif","Gibran"],a:0},{q:"كاتب Don Quixote؟",e:"Don Quixote author?",o:["Lope de Vega","Cervantes","Calderón","Quevedo"],a:1},{q:"أشهر قصيدة عربية قديمة؟",e:"Most famous ancient Arabic odes?",o:["المعلقات","الأيام","كليلة ودمنة","المقامات"],a:0},{q:"كاتب رواية البؤساء؟",e:"Author of Les Misérables?",o:["Balzac","Victor Hugo","Zola","Flaubert"],a:1}],
+medium:[{q:"نوبل الأدب 2023؟",e:"Nobel Literature 2023?",o:["Murakami","Jon Fosse","Rushdie","Annie Ernaux"],a:1},{q:"كاتب 1984؟",e:"Author of 1984?",o:["Huxley","Orwell","Kafka","Beckett"],a:1},{q:"مؤلف المقدمة؟",e:"Author of the Muqaddimah?",o:["Avicenna","Averroes","Ibn Khaldun","Al-Ghazali"],a:2},{q:"قرن المتنبي الميلادي؟",e:"Al-Mutanabbi's century?",o:["7th C","8th C","10th C","12th C"],a:2},{q:"مدرسة بودلير الشعرية؟",e:"Baudelaire's movement?",o:["Symbolism","Romanticism","Classicism","Existentialism"],a:0},{q:"من كتب Ulysses؟",e:"Who wrote Ulysses?",o:["Virginia Woolf","James Joyce","T.S. Eliot","Beckett"],a:1},{q:"مؤسس الرواية الواقعية الفرنسية؟",e:"French realist novel founder?",o:["Flaubert","Balzac","Zola","Maupassant"],a:1},{q:"كاتب الأمير؟",e:"Author of The Prince?",o:["Dante","Machiavelli","Erasmus","More"],a:1},{q:"أشهر رواية كافكا؟",e:"Kafka's most famous novel?",o:["The Castle","The Trial","Amerika","In the Penal Colony"],a:1},{q:"كاتب Anna Karenina؟",e:"Author of Anna Karenina?",o:["Dostoevsky","Tolstoy","Turgenev","Chekhov"],a:1}],
+hard:[{q:"راوي رواية الغريب لكامو؟",e:"Narrator in The Stranger?",o:["Jacques","Meursault","Rambert","Tarrou"],a:1},{q:"هولدن كولفيلد في أي رواية؟",e:"Holden Caulfield is from?",o:["Lord of the Flies","Catcher in the Rye","Brave New World","Fahrenheit 451"],a:1},{q:"نظرية الدال والمدلول لمن؟",e:"Signifier/signified theory by?",o:["Saussure","Chomsky","Derrida","Foucault"],a:0},{q:"كاتب Moby Dick؟",e:"Moby Dick author?",o:["Hemingway","Melville","Twain","Faulkner"],a:1},{q:"من كتب Mrs Dalloway؟",e:"Author of Mrs Dalloway?",o:["Austen","Virginia Woolf","Brontë","Eliot"],a:1},{q:"The Waste Land نُشرت عام؟",e:"The Waste Land published?",o:["1918","1922","1925","1930"],a:1},{q:"ما هو الميتافيكشن؟",e:"Metafiction refers to?",o:["Historical novel","Self-referential fiction","Science fiction","Dramatic poetry"],a:1},{q:"مبدأ سابير-وورف يقول؟",e:"Sapir-Whorf hypothesis states?",o:["Language shapes thought","Thought precedes language","Language is universal","Sounds are basis"],a:0},{q:"من ابتكر مصطلح تيار الوعي؟",e:"Who coined 'stream of consciousness'?",o:["William James","Freud","Joyce","Woolf"],a:0},{q:"مؤلف رواية زينب؟",e:"Author of Zaynab (first Arabic novel)?",o:["Naguib Mahfouz","Muhammad Husayn Haykal","Taha Hussein","Al-Aqqad"],a:1}]},
+lang:{
+easy:[{q:"معنى Bonjour؟",e:"What does Bonjour mean?",o:["Goodbye","Thank you","Hello","Please"],a:2},{q:"شكراً بالإسبانية؟",e:"Thank you in Spanish?",o:["Gracias","Merci","Danke","Arigato"],a:0},{q:"أكثر اللغات انتشاراً؟",e:"Most spoken language?",o:["English","Spanish","Chinese","Hindi"],a:2},{q:"مرحباً بالألمانية؟",e:"Hello in German?",o:["Ciao","Hola","Hallo","Salut"],a:2},{q:"الأبجدية الكورية؟",e:"Korean alphabet name?",o:["Hanja","Hangul","Kana","Kanji"],a:1},{q:"عدد حروف الأبجدية العربية؟",e:"Arabic alphabet count?",o:["24","26","28","30"],a:2},{q:"ماء بالفرنسية؟",e:"Water in French?",o:["Agua","Eau","Wasser","Acqua"],a:1},{q:"الكتابة اليابانية المقطعية؟",e:"Japanese syllabic script?",o:["Kanji","Hiragana","Hangul","Devanagari"],a:1},{q:"نعم بالإيطالية؟",e:"Yes in Italian?",o:["Oui","Sí","Ja","Sì"],a:3},{q:"اللغة الرسمية في البرازيل؟",e:"Brazil's official language?",o:["Spanish","Portuguese","French","English"],a:1}],
+medium:[{q:"اللغات الرسمية في الأمم المتحدة؟",e:"UN official languages count?",o:["4","5","6","7"],a:2},{q:"أكثر لغات أفريقيا انتشاراً؟",e:"Most widely spoken in Africa?",o:["Arabic","Swahili","Hausa","Amharic"],a:0},{q:"أقدم لغة مكتوبة في العالم؟",e:"Oldest written language?",o:["Egyptian","Sumerian","Chinese","Indian"],a:1},{q:"أنا أحبك بالإيطالية؟",e:"I love you in Italian?",o:["Je t'aime","Te amo","Ti amo","Ich liebe dich"],a:2},{q:"أكثر الحروف الإنجليزية استخداماً؟",e:"Most used English letter?",o:["a","e","i","t"],a:1},{q:"كم لغة رسمية في سويسرا؟",e:"Official languages in Switzerland?",o:["2","3","4","5"],a:2},{q:"الإسبيرانتو هي؟",e:"Esperanto is?",o:["Old Spanish","Constructed global language","Italian dialect","Portuguese dialect"],a:1},{q:"كم لغة في العالم تقريباً؟",e:"Approx. languages in the world?",o:["3000","5000","7000","10000"],a:2},{q:"معنى anti في الإنجليزية؟",e:"Meaning of prefix anti?",o:["With","Against","Before","After"],a:1},{q:"اللغة اللاتينية أصل؟",e:"Latin is ancestor of?",o:["French only","Romance languages","English only","German"],a:1}],
+hard:[{q:"نظرية النحو التوليدي لمن؟",e:"Generative grammar by?",o:["Saussure","Chomsky","Sapir","Whorf"],a:1},{q:"ما هو المورفيم؟",e:"A morpheme is?",o:["Full sentence","Smallest meaningful unit","Single letter","Long word"],a:1},{q:"ما هو الديغلوسيا؟",e:"Diglossia refers to?",o:["Two varieties in one community","Two different languages","Writing with both hands","Sound system"],a:0},{q:"أول لغة برمجة عالية المستوى؟",e:"First high-level programming language?",o:["COBOL","FORTRAN","LISP","BASIC"],a:1},{q:"ما هي الفونيمات؟",e:"Phonemes are?",o:["Words","Distinctive sound units","Sentences","Meanings"],a:1},{q:"مفهوم سوسير الأشهر؟",e:"Saussure's key concept?",o:["Signifier-Signified","Sound-Meaning","Sentence","Text"],a:0},{q:"لغة تكتب يمين لليسار غير العربية؟",e:"RTL language besides Arabic?",o:["Persian","Hindi","Thai","Vietnamese"],a:0},{q:"كم عائلة لغوية في العالم تقريباً؟",e:"Approx language families?",o:["50","100","150","250"],a:3},{q:"ما هو علم الأصوات Phonology؟",e:"Phonology studies?",o:["Word meanings","Sound systems","Sentence structure","Writing systems"],a:1},{q:"مبدأ سابير-وورف يقول؟",e:"Sapir-Whorf hypothesis?",o:["Language shapes thought","Thought precedes language","Language is universal","Sounds are basis"],a:0}]},
+physics:{
+easy:[{q:"قانون نيوتن الأول؟",e:"Newton's First Law?",o:["Force Law","Inertia","Action-Reaction","Gravity"],a:1},{q:"وحدة قياس القوة؟",e:"Unit of force?",o:["Joule","Watt","Newton","Pascal"],a:2},{q:"سرعة الضوء في الفراغ؟",e:"Speed of light?",o:["3×10⁶ m/s","3×10⁸ m/s","3×10¹⁰ m/s","3×10⁴ m/s"],a:1},{q:"صيغة الطاقة الحركية؟",e:"Kinetic energy formula?",o:["mgh","½mv²","mv","Fd"],a:1},{q:"أول عنصر في الجدول الدوري؟",e:"First element periodic table?",o:["Helium","Hydrogen","Lithium","Carbon"],a:1},{q:"قانون أوم؟",e:"Ohm's Law?",o:["V=IR","F=ma","E=mc²","P=IV"],a:0},{q:"معادلة أينشتاين؟",e:"Einstein's equation?",o:["F=ma","V=IR","E=mc²","PV=nRT"],a:2},{q:"الصفر المطلق بالسيليزيوس؟",e:"Absolute zero Celsius?",o:["-100°","-200°","-273°","-300°"],a:2},{q:"وحدة الضغط؟",e:"Unit of pressure?",o:["Newton","Joule","Pascal","Ampere"],a:2},{q:"أصغر جسيم في الذرة؟",e:"Smallest particle in atom?",o:["Molecule","Atom","Quark","Electron"],a:2}],
+medium:[{q:"مبدأ هايزنبرغ؟",e:"Heisenberg's principle?",o:["Energy Law","Uncertainty Principle","Quantum Theory","Calculus"],a:1},{q:"البروتون مكون من؟",e:"Proton composition?",o:["3 electrons","3 quarks","2 neutrons","e⁺ & e⁻"],a:1},{q:"القدرة = ؟",e:"Power = ?",o:["Energy × time","Energy ÷ time","Force × time","Mass × speed"],a:1},{q:"الأمواج الكهرومغناطيسية تحتاج وسطاً؟",e:"EM waves need a medium?",o:["Yes","No","Sometimes","In vacuum only"],a:1},{q:"نصف عمر العنصر المشع؟",e:"Radioactive half-life means?",o:["Full decay time","Half decay time","Peak radiation time","Double mass time"],a:1},{q:"الانصهار النووي؟",e:"Nuclear fusion is?",o:["Splitting nucleus","Merging nuclei","Converting atoms","Absorbing energy"],a:1},{q:"من فسّر التأثير الكهروضوئي؟",e:"Photoelectric effect explained by?",o:["Maxwell","Einstein","Bohr","Planck"],a:1},{q:"تردد الضوء المرئي؟",e:"Visible light frequency?",o:["10⁸ Hz","10¹¹ Hz","10¹⁴ Hz","10¹⁷ Hz"],a:2},{q:"موجات دي برولي تتعلق بـ؟",e:"De Broglie waves relate to?",o:["Sound","Wave nature of matter","Gravity","Light only"],a:1},{q:"الثقب الأسود؟",e:"What is a black hole?",o:["Exploded star","Extreme gravity region","Small galaxy","Planet"],a:1}],
+hard:[{q:"نظرية الأوتار الفائقة؟",e:"String theory proposes?",o:["Vibrating strings","Quantized gravity","Curved spacetime","Multiple infinities"],a:0},{q:"بوزون هيغز مسؤول عن؟",e:"Higgs boson responsible for?",o:["Electric charge","Mass","Spin","Color charge"],a:1},{q:"مفارقة التوأم في النسبية؟",e:"Twin paradox result?",o:["Same age","Fast traveler younger","Slow traveler younger","No difference"],a:1},{q:"CPT تعني؟",e:"CPT symmetry stands for?",o:["Charge-Parity-Time","Color-Phase-Temperature","Current-Pressure-Tension","Charge-Position-Torque"],a:0},{q:"أقوى قوى الطبيعة الأربعة؟",e:"Strongest fundamental force?",o:["Gravity","EM force","Weak nuclear","Strong nuclear"],a:3},{q:"ثابت بولتزمان يربط؟",e:"Boltzmann constant relates?",o:["Energy & charge","Energy & temperature","Mass & speed","Pressure & volume"],a:1},{q:"معادلة شرودنغر تصف؟",e:"Schrödinger equation describes?",o:["Large body motion","Wave function evolution","Quantum gravity","Heat diffusion"],a:1},{q:"تجربة قطة شرودنغر تثبت؟",e:"Schrödinger's cat demonstrates?",o:["Cats like physics","Quantum superposition","Waves","Gravity"],a:1},{q:"مبدأ ماخ يقول؟",e:"Mach's principle states?",o:["Inertia from universe","Speed of sound","Celestial motion","Relative motion"],a:0},{q:"قوة كازيمير؟",e:"Casimir effect is?",o:["Electric force","Quantum vacuum force","Magnetic force","Gravitational"],a:1}]},
+history:{
+easy:[{q:"في أي عام فُتحت القسطنطينية؟",e:"When did Constantinople fall?",o:["1389","1453","1492","1517"],a:1},{q:"من بنى الأهرامات؟",e:"Who built the pyramids?",o:["Romans","Greeks","Ancient Egyptians","Persians"],a:2},{q:"الحرب العالمية الأولى بدأت عام؟",e:"WW1 started in?",o:["1912","1914","1916","1918"],a:1},{q:"من اكتشف أمريكا؟",e:"Who discovered America?",o:["Vasco da Gama","Columbus","Magellan","Cabot"],a:1},{q:"الثورة الفرنسية بدأت عام؟",e:"French Revolution started?",o:["1785","1789","1793","1799"],a:1},{q:"من كان أول رئيس للولايات المتحدة؟",e:"First US president?",o:["Lincoln","Jefferson","Washington","Adams"],a:2},{q:"الحرب العالمية الثانية انتهت عام؟",e:"WW2 ended in?",o:["1943","1944","1945","1946"],a:2},{q:"أقدم حضارة في العالم؟",e:"Oldest civilization?",o:["Egyptian","Sumerian","Greek","Chinese"],a:1},{q:"من كتب الإلياذة؟",e:"Who wrote the Iliad?",o:["Plato","Socrates","Homer","Aristotle"],a:2},{q:"عاصمة الإمبراطورية الرومانية؟",e:"Roman Empire capital?",o:["Athens","Carthage","Rome","Alexandria"],a:2}],
+medium:[{q:"معركة عين جالوت كانت عام؟",e:"Battle of Ain Jalut year?",o:["1258","1260","1265","1270"],a:1},{q:"من أسس الإمبراطورية المغولية؟",e:"Who founded the Mongol Empire?",o:["Kublai Khan","Timur","Genghis Khan","Hulagu"],a:2},{q:"الثورة الصناعية بدأت في؟",e:"Industrial Revolution started in?",o:["France","Germany","Britain","USA"],a:2},{q:"اتفاقية سايكس-بيكو عام؟",e:"Sykes-Picot Agreement year?",o:["1914","1916","1918","1920"],a:1},{q:"من أسس الدولة العثمانية؟",e:"Who founded the Ottoman Empire?",o:["Suleiman","Mehmed","Osman","Selim"],a:2},{q:"من اغتال يوليوس قيصر؟",e:"Who assassinated Julius Caesar?",o:["Marc Antony","Brutus","Pompey","Augustus"],a:1},{q:"ثورة أكتوبر في روسيا كانت عام؟",e:"Russian October Revolution year?",o:["1905","1914","1917","1921"],a:2},{q:"نابليون نُفي إلى؟",e:"Napoleon was exiled to?",o:["Elba","Corsica","St. Helena","Malta"],a:2},{q:"الفتح الإسلامي لمصر كان على يد؟",e:"Islamic conquest of Egypt by?",o:["Khalid ibn Walid","Amr ibn al-As","Saad ibn Abi Waqqas","Uqba ibn Nafi"],a:1},{q:"الحملة الصليبية الأولى كانت عام؟",e:"First Crusade was in?",o:["1095","1099","1187","1204"],a:0}],
+hard:[{q:"معاهدة ويستفاليا أنهت؟",e:"Treaty of Westphalia ended?",o:["30 Years War","100 Years War","Napoleonic Wars","WW1"],a:0},{q:"الإمبراطور الذي أصدر مرسوم ميلانو؟",e:"Emperor who issued Edict of Milan?",o:["Nero","Augustus","Constantine","Diocletian"],a:2},{q:"من كتب كتاب الأمير؟",e:"Who wrote The Prince?",o:["Dante","Machiavelli","Boccaccio","Petrarch"],a:1},{q:"الحرب البونيقية الثانية قادها؟",e:"Second Punic War led by?",o:["Scipio","Hannibal","Caesar","Pompey"],a:1},{q:"الإمبراطورية المقدونية وصلت ذروتها في عهد؟",e:"Macedonian Empire peaked under?",o:["Philip II","Alexander the Great","Ptolemy","Seleucus"],a:1},{q:"مدينة قرطاج كانت في؟",e:"Carthage was in modern-day?",o:["Libya","Algeria","Tunisia","Morocco"],a:2},{q:"مبدأ الفصل بين السلطات لمن؟",e:"Separation of powers concept by?",o:["Rousseau","Voltaire","Montesquieu","Locke"],a:2},{q:"الدولة الأموية عاصمتها؟",e:"Umayyad capital?",o:["Baghdad","Medina","Damascus","Cairo"],a:2},{q:"حادثة بوسطن للشاي كانت عام؟",e:"Boston Tea Party year?",o:["1770","1773","1776","1783"],a:1},{q:"ثورة هايتي استقلت عن؟",e:"Haitian Revolution against?",o:["Spain","Britain","France","Portugal"],a:2}]},
+football:{
+easy:[{q:"كم مرة فازت البرازيل بكأس العالم؟",e:"How many times Brazil won World Cup?",o:["4","5","6","7"],a:1},{q:"من هو هداف كأس العالم التاريخي؟",e:"World Cup all-time top scorer?",o:["Pelé","Ronaldo","Müller","Klose"],a:3},{q:"من فاز بكأس العالم 2022؟",e:"Who won World Cup 2022?",o:["France","Brazil","Argentina","Portugal"],a:2},{q:"كريستيانو رونالدو جنسيته؟",e:"Ronaldo's nationality?",o:["Spanish","Brazilian","Portuguese","Italian"],a:2},{q:"ليونيل ميسي يلعب لأي منتخب؟",e:"Messi plays for which national team?",o:["Brazil","Spain","Argentina","Uruguay"],a:2},{q:"كأس العالم يُقام كل كم سنة؟",e:"World Cup held every?",o:["2 years","3 years","4 years","5 years"],a:2},{q:"كم لاعباً في فريق كرة القدم؟",e:"Players per football team?",o:["10","11","12","9"],a:1},{q:"من فاز بالكرة الذهبية أكثر مرة؟",e:"Most Ballon d'Or wins?",o:["Ronaldo","Messi","Zidane","Ronaldinho"],a:1},{q:"أول بطولة كأس العالم كانت عام؟",e:"First World Cup year?",o:["1928","1930","1934","1938"],a:1},{q:"أي ملعب الأكبر في العالم؟",e:"World's largest stadium?",o:["Wembley","Camp Nou","Rungrado","Maracanã"],a:2}],
+medium:[{q:"من هو مدرب برشلونة الأسطوري؟",e:"Barcelona's legendary coach?",o:["Mourinho","Guardiola","Ancelotti","Klopp"],a:1},{q:"ريال مدريد فاز بدوري الأبطال كم مرة؟",e:"Real Madrid UCL wins?",o:["12","13","14","15"],a:2},{q:"من سجل هدف اليد 1986؟",e:"Who scored the Hand of God goal 1986?",o:["Pelé","Maradona","Ronaldo","Zidane"],a:1},{q:"أي بلد استضاف كأس العالم 1994؟",e:"1994 World Cup host?",o:["Germany","France","USA","Japan"],a:2},{q:"لقب ليفربول في إنجلترا؟",e:"Liverpool's nickname?",o:["The Blues","The Reds","The Gunners","The Citizens"],a:1},{q:"من هو الهداف التاريخي لريال مدريد؟",e:"Real Madrid all-time top scorer?",o:["Raul","Benzema","Ronaldo","Di Stefano"],a:2},{q:"كأس العالم 2026 تستضيفه؟",e:"2026 World Cup hosted by?",o:["Qatar","USA/Canada/Mexico","England","Germany"],a:1},{q:"أفضل لاعب في العالم 2023 بالكرة الذهبية؟",e:"Ballon d'Or 2023 winner?",o:["Ronaldo","Mbappe","Haaland","Messi"],a:3},{q:"يويفا تأسست عام؟",e:"UEFA founded in?",o:["1950","1954","1960","1965"],a:1},{q:"أسرع هدف في تاريخ كأس العالم؟",e:"Fastest World Cup goal?",o:["10 sec","11 sec","15 sec","20 sec"],a:1}],
+hard:[{q:"من سجل أكثر الأهداف في الدوريات الأوروبية؟",e:"Most European league goals ever?",o:["Ronaldo","Messi","Müller","Puskás"],a:0},{q:"أول بطل لدوري أبطال أوروبا؟",e:"First Champions League winner?",o:["Ajax","Real Madrid","Bayern","Juventus"],a:1},{q:"كأس العالم 1966 فاز بها؟",e:"1966 World Cup winner?",o:["West Germany","Brazil","England","Italy"],a:2},{q:"أكثر اللاعبين حضوراً في كأس العالم؟",e:"Most World Cup appearances (player)?",o:["Messi","Buffon","Matthäus","Ramos"],a:2},{q:"أول فريق يفوز بثلاثية الكرة الإنجليزية؟",e:"First English treble winner?",o:["Arsenal","Liverpool","Man United","Chelsea"],a:2},{q:"نظام الـ VAR تم اعتماده رسمياً في كأس العالم؟",e:"VAR officially adopted in WC?",o:["2014","2018","2022","2010"],a:1},{q:"أي نادٍ ربح دوري الأبطال ثلاث مرات متتالية؟",e:"First club to win UCL 3 consecutive times?",o:["AC Milan","Barcelona","Real Madrid","Bayern"],a:2},{q:"من صمم كأس العالم الأصلي؟",e:"Who designed the original World Cup trophy?",o:["Picasso","Abel Lafleur","Renoir","Brancusi"],a:1},{q:"أكثر دولة استضافت كأس العالم؟",e:"Country hosted most World Cups?",o:["Brazil","Germany","France","Mexico/Italy"],a:3},{q:"أكثر دولة فازت بكأس الأمم الأوروبية؟",e:"Most UEFA Euro wins?",o:["France","Italy","Germany","Spain"],a:3}]},
+geo:{
+easy:[{q:"أكبر دولة في العالم مساحةً؟",e:"Largest country by area?",o:["Canada","China","USA","Russia"],a:3},{q:"أطول نهر في العالم؟",e:"Longest river in the world?",o:["Amazon","Nile","Mississippi","Yangtze"],a:1},{q:"عاصمة اليابان؟",e:"Capital of Japan?",o:["Osaka","Kyoto","Tokyo","Hiroshima"],a:2},{q:"أعلى قمة في العالم؟",e:"Highest peak in the world?",o:["K2","Everest","Kilimanjaro","Mont Blanc"],a:1},{q:"أي قارة هي الأكبر؟",e:"Largest continent?",o:["Africa","America","Asia","Europe"],a:2},{q:"المحيط الأكبر في العالم؟",e:"Largest ocean?",o:["Atlantic","Indian","Pacific","Arctic"],a:2},{q:"عاصمة البرازيل؟",e:"Capital of Brazil?",o:["Rio de Janeiro","São Paulo","Brasília","Salvador"],a:2},{q:"صحراء الصحراء الكبرى في أي قارة؟",e:"Sahara Desert is in?",o:["Asia","Africa","Australia","South America"],a:1},{q:"كم عدد دول العالم تقريباً؟",e:"Approx. countries in the world?",o:["175","193","210","220"],a:1},{q:"أصغر قارة في العالم؟",e:"Smallest continent?",o:["Europe","Antarctica","Australia","South America"],a:2}],
+medium:[{q:"أعمق بحيرة في العالم؟",e:"Deepest lake in the world?",o:["Titicaca","Baikal","Victoria","Tanganyika"],a:1},{q:"أطول سلسلة جبال في العالم؟",e:"Longest mountain range?",o:["Himalayas","Rockies","Alps","Andes"],a:3},{q:"أي دولة لديها أكثر جيران؟",e:"Country with most neighbors?",o:["Russia","China","Brazil","Germany"],a:1},{q:"نهر الأمازون يصب في؟",e:"Amazon River flows into?",o:["Pacific Ocean","Caribbean","Atlantic Ocean","Gulf of Mexico"],a:2},{q:"أصغر دولة في العالم؟",e:"Smallest country in the world?",o:["Monaco","San Marino","Vatican","Liechtenstein"],a:2},{q:"جزيرة غرينلاند تتبع؟",e:"Greenland belongs to?",o:["USA","Norway","Canada","Denmark"],a:3},{q:"قناة السويس تربط بين؟",e:"Suez Canal connects?",o:["Red Sea & Mediterranean","Red Sea & Indian Ocean","Mediterranean & Atlantic","Black Sea & Caspian"],a:0},{q:"أي دولة لديها أكبر عدد من الجزر؟",e:"Country with most islands?",o:["Indonesia","Philippines","Norway","Sweden"],a:0},{q:"بحيرة فيكتوريا تقع في؟",e:"Lake Victoria is in?",o:["West Africa","Central Africa","East Africa","South Africa"],a:2},{q:"نهر النيل يمر على كم دولة؟",e:"Nile River passes through how many countries?",o:["8","9","10","11"],a:3}],
+hard:[{q:"خط الاستواء يمر على كم دولة؟",e:"Equator passes through how many countries?",o:["11","13","15","17"],a:1},{q:"أعلى عاصمة في العالم؟",e:"Highest capital city?",o:["Quito","Addis Ababa","La Paz","Kathmandu"],a:2},{q:"مضيق جبل طارق يفصل بين؟",e:"Strait of Gibraltar separates?",o:["Europe & Africa","Asia & Africa","Europe & Asia","North & South America"],a:0},{q:"أي دولة تمتلك أكبر رصيد مياه عذبة؟",e:"Country with most fresh water?",o:["USA","China","Canada","Brazil"],a:3},{q:"خط التاريخ الدولي يمر على؟",e:"International Date Line passes through?",o:["Pacific Ocean","Atlantic Ocean","Indian Ocean","Arctic Ocean"],a:0},{q:"جبال الأورال تفصل بين؟",e:"Ural Mountains separate?",o:["Europe & Asia","Asia & Africa","North & South Europe","Russia & China"],a:0},{q:"أكثر دول العالم سكاناً؟",e:"Most populous country?",o:["China","India","USA","Indonesia"],a:1},{q:"الصحراء الأنتاركتيكية هي أكبر صحراء في العالم؟",e:"Antarctica is Earth's largest desert?",o:["False","True","Partly true","Only in winter"],a:1},{q:"ما هو الوقت لمنطقة UTC+0؟",e:"UTC+0 timezone is called?",o:["GMT","EST","PST","CET"],a:0},{q:"أي مدينة تقع على قارتين؟",e:"Which city spans two continents?",o:["Cairo","Istanbul","Moscow","Athens"],a:1}]}
+};
+
+// ===== STATE =====
+let lang='ar';
+let totalScore=0,totalCorrect=0,totalAnswered=0,bestStreak=0,playerLevel=1;
+let secPts={math:0,general:0,cinema:0,lit:0,history:0,football:0,geo:0,lang:0,physics:0};
+let bestRound={math:[0,0,0],general:[0,0,0],cinema:[0,0,0],lit:[0,0,0],history:[0,0,0],football:[0,0,0],geo:[0,0,0],lang:[0,0,0],physics:[0,0,0]};
+let curSec='',curLv=0,curQs=[],curIdx=0,qScore=0,qCorrect=0,streak=0,bestCombo=0;
+let timer=0,timerInt=null,answered=false;
+let prevLevel=1;
+
+const LETTERS_AR=["أ","ب","ج","د"];
+const LETTERS_EN=["A","B","C","D"];
+function t(k){return(T[lang]||T.ar)[k]||(T.ar)[k]||k}
+
+function save(){try{localStorage.setItem('EK_V3',JSON.stringify({totalScore,totalCorrect,totalAnswered,bestStreak,playerLevel,secPts,bestRound}));}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem('EK_V3'));if(d){totalScore=d.totalScore||0;totalCorrect=d.totalCorrect||0;totalAnswered=d.totalAnswered||0;bestStreak=d.bestStreak||0;playerLevel=d.playerLevel||1;secPts=d.secPts||secPts;bestRound=d.bestRound||bestRound;prevLevel=playerLevel;}}catch(e){}}
+
+function setLang(l){
+  lang=l;
+  document.documentElement.lang=l;
+  document.documentElement.dir=l==='ar'?'rtl':'ltr';
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('on',b.textContent.trim()===(l==='ar'?'العربية':'English')));
+  refreshHome();
+}
+
+function go(screen){
+  document.querySelectorAll('.screen,.quiz-screen').forEach(s=>{s.classList.remove('active');s.style.display='none';});
+  const s=document.getElementById('S_'+screen);
+  if(s){s.style.display='flex';requestAnimationFrame(()=>s.classList.add('active'));window.scrollTo(0,0);}
+  if(screen==='home')refreshHome();
+  save();
+}
+
+function getRankIdx(){
+  const th=[0,200,500,1000,2000,5000];
+  let ri=0;
+  for(let i=th.length-1;i>=0;i--){if(totalScore>=th[i]){ri=i;break;}}
+  return ri;
+}
+
+function refreshHome(){
+  document.getElementById('T_title').textContent=t('title');
+  document.getElementById('L_pts').textContent=t('pts');
+  document.getElementById('L_corr').textContent=t('corr');
+  document.getElementById('L_streak').textContent=t('streak');
+  document.getElementById('L_acc').textContent=t('acc');
+  document.getElementById('L_secs').textContent=t('secs');
+  document.getElementById('H_score').textContent=totalScore;
+  document.getElementById('H_correct').textContent=totalCorrect;
+  document.getElementById('H_streak').textContent=bestStreak;
+  const acc=totalAnswered>0?Math.round(totalCorrect/totalAnswered*100):0;
+  document.getElementById('H_acc').textContent=acc+'%';
+  const ri=getRankIdx();
+  const ranks=t('ranks'),stars=t('rankStars');
+  document.getElementById('H_rankName').textContent=ranks[ri];
+  document.getElementById('H_rankStars').textContent=stars[ri];
+  const xpCur=XP[Math.min(ri,XP.length-1)];
+  const xpNext=XP[Math.min(ri+1,XP.length-1)];
+  const pct=xpNext>xpCur?Math.min(100,Math.round((totalScore-xpCur)/(xpNext-xpCur)*100)):100;
+  document.getElementById('H_xpBar').style.width=pct+'%';
+  document.getElementById('H_xpCur').textContent=totalScore+' XP';
+  document.getElementById('H_xpNext').textContent=lang==='ar'?`${xpNext} XP للمستوى التالي`:`${xpNext} XP for next level`;
+  buildGrid();
+}
+
+function buildGrid(){
+  const g=document.getElementById('secGrid');g.innerHTML='';
+  SECS.forEach(s=>{
+    const unlocked=totalScore>=s.unlock;
+    const pts=secPts[s.id]||0;
+    const pct=Math.min(100,Math.round(pts/300*100));
+    const d=document.createElement('div');
+    d.className='sec-card'+(unlocked?'':' locked');
+    d.style.setProperty('--sec-color',s.color);
+    d.innerHTML=`
+      <div class="sec-glow" style="background:radial-gradient(circle,${s.color}66,transparent)"></div>
+      ${!unlocked?'<div class="lock-overlay">X</div>':''}
+      <div class="sec-icon" style="background:${s.color}33;border-color:${s.color}66;color:${s.color}">${s.icon}</div>
+      <div class="sec-name">${lang==='ar'?s.ar:s.en}</div>
+      <div class="sec-pts">${pts} pts</div>
+      <div class="sec-bar"><div class="sec-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${s.color}88,${s.color})"></div></div>
+      ${!unlocked?`<div class="unlock-req">${t('unlockReq').replace('{n}',s.unlock)}</div>`:''}
+    `;
+    if(unlocked)d.onclick=()=>showLevels(s.id);
+    g.appendChild(d);
+  });
+}
+
+function showLevels(secId){
+  curSec=secId;
+  const s=SECS.find(x=>x.id===secId);
+  document.getElementById('LS_icon').textContent=s.icon;
+  document.getElementById('LS_name').textContent=lang==='ar'?s.ar:s.en;
+  document.getElementById('L_chooseLv').textContent=t('chooseLv');
+  document.getElementById('L_backLv').textContent=t('back');
+  const list=document.getElementById('lvList');list.innerHTML='';
+  const cls=['easy','medium','hard'];
+  const reqs=[0,150,350];
+  cls.forEach((lv,i)=>{
+    const locked=totalScore<reqs[i];
+    const best=bestRound[secId]?bestRound[secId][i]:0;
+    const lvNames=t('lvNames'),lvDescs=t('lvDescs'),lvPts=t('lvPts');
+    const stars=['★☆☆','★★☆','★★★'];
+    const item=document.createElement('div');
+    item.className=`lv-item ${lv}${locked?' locked':''}`;
+    item.innerHTML=`
+      <div class="lv-stars">${stars[i]}</div>
+      <div class="lv-info">
+        <div class="lv-name">${lvNames[i]}</div>
+        <div class="lv-desc">${lvDescs[i]}</div>
+        <div class="lv-pts-badge">${lvPts[i]}</div>
+        ${best>0?`<div class="lv-best">🏆 ${lang==='ar'?'أفضل':'Best'}: ${best} pts</div>`:''}
+        ${locked?`<div class="lv-req-txt">🔒 ${lang==='ar'?`يحتاج ${reqs[i]} نقطة`:`Needs ${reqs[i]} pts`}</div>`:''}
+      </div>
+      <div class="lv-arrow">${locked?'🔒':'›'}</div>
+    `;
+    if(!locked)item.onclick=()=>startQuiz(secId,i);
+    list.appendChild(item);
+  });
+  go('level');
+}
+
+function startQuiz(secId,lvIdx){
+  curSec=secId;curLv=lvIdx;
+  const lv=['easy','medium','hard'][lvIdx];
+  curQs=shuffle([...QS[secId][lv]]).slice(0,10);
+  curIdx=0;qScore=0;qCorrect=0;streak=0;bestCombo=0;answered=false;
+  const s=SECS.find(x=>x.id===secId);
+  document.getElementById('Q_secTitle').textContent=lang==='ar'?s.ar:s.en;
+  document.getElementById('Q_secIcon').textContent=s.icon;
+  document.getElementById('L_backQ').textContent=t('back');
+  document.getElementById('L_qsc').textContent=t('sc');
+  document.getElementById('L_qpr').textContent=t('pr');
+  document.getElementById('L_qstr').textContent=t('str');
+  document.getElementById('L_qtm').textContent=t('tm');
+  document.getElementById('L_next').textContent=t('next');
+  document.querySelectorAll('.screen,.quiz-screen').forEach(s=>{s.classList.remove('active');s.style.display='none';});
+  const qs=document.getElementById('S_quiz');
+  qs.style.display='flex';requestAnimationFrame(()=>qs.classList.add('active'));
+  window.scrollTo(0,0);
+  loadQ();
+}
+
+function loadQ(){
+  if(curIdx>=curQs.length){showEnd();return;}
+  answered=false;
+  const q=curQs[curIdx];
+  const s=SECS.find(x=>x.id===curSec);
+  document.getElementById('Q_cat').textContent=(lang==='ar'?s.ar:s.en)+' · '+(lang==='ar'?t('lvNames')[curLv]:t('lvNames')[curLv]);
+  document.getElementById('Q_text').textContent=lang==='ar'?q.q:q.e;
+  document.getElementById('Q_num').textContent=(curIdx+1)+'/'+curQs.length;
+  document.getElementById('Q_prog').style.width=((curIdx+1)/curQs.length*100)+'%';
+  document.getElementById('feedbackBox').className='feedback';
+  const nb=document.getElementById('nextBtn');nb.className='next-btn';
+  const letters=lang==='ar'?LETTERS_AR:LETTERS_EN;
+  const list=document.getElementById('optsList');list.innerHTML='';
+  q.o.forEach((op,i)=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.innerHTML=`<div class="opt-letter">${letters[i]}</div><div class="opt-text">${op}</div>`;
+    b.onclick=()=>pick(i,b);
+    list.appendChild(b);
+  });
+  startTimer();
+}
+
+function startTimer(){
+  if(timerInt)clearInterval(timerInt);
+  const times=t('lvTimes');
+  timer=times[curLv];
+  const stat=document.getElementById('timerStat');
+  stat.classList.remove('danger');
+  document.getElementById('Q_timer').textContent=timer;
+  timerInt=setInterval(()=>{
+    timer--;
+    document.getElementById('Q_timer').textContent=timer;
+    if(timer<=5)stat.classList.add('danger');
+    if(timer<=0){clearInterval(timerInt);timeUp();}
+  },1000);
+}
+
+function timeUp(){
+  if(answered)return;
+  answered=true;
+  const q=curQs[curIdx];
+  document.querySelectorAll('.opt').forEach(b=>b.disabled=true);
+  document.querySelectorAll('.opt')[q.a].classList.add('correct');
+  streak=0;
+  document.getElementById('Q_streak').textContent='0 x';
+  totalAnswered++;
+  showFeedback(false,t('tf')+q.o[q.a]);
+  playSound('wrong');
+  document.getElementById('nextBtn').className='next-btn show';
+}
+
+function pick(idx,btn){
+  if(answered)return;
+  answered=true;
+  clearInterval(timerInt);
+  const q=curQs[curIdx];
+  document.querySelectorAll('.opt').forEach(b=>b.disabled=true);
+  document.querySelectorAll('.opt')[q.a].classList.add('correct');
+  totalAnswered++;
+  const pts=[10,20,40][curLv];
+  if(idx===q.a){
+    btn.classList.add('correct');
+    streak++;if(streak>bestCombo)bestCombo=streak;
+    if(streak>bestStreak)bestStreak=streak;
+    const bonus=Math.min(streak-1,5)*Math.round(pts*.3);
+    const earned=pts+bonus;
+    qScore+=earned;totalScore+=earned;
+    qCorrect++;totalCorrect++;
+    updateLevel();
+    if(streak>=3)showCombo(streak,earned);
+    showFeedback(true,t('cf')+(streak>1?'  x'+streak:'')+' +'+earned+' pts');
+    playSound('correct');
+  }else{
+    btn.classList.add('wrong');
+    streak=0;
+    showFeedback(false,t('wf')+q.o[q.a]);
+    playSound('wrong');
+  }
+  document.getElementById('Q_score').textContent=qScore;
+  document.getElementById('Q_streak').textContent=streak+' x';
+  secPts[curSec]=(secPts[curSec]||0)+(idx===q.a?pts:0);
+  save();
+  document.getElementById('nextBtn').className='next-btn show';
+}
+
+function showFeedback(ok,msg){
+  const f=document.getElementById('feedbackBox');
+  f.className='feedback show '+(ok?'ok':'no');
+  f.textContent=msg;
+}
+
+function nextQ(){curIdx++;loadQ();}
+
+function updateLevel(){
+  const th=[0,200,500,1000,2000,5000];
+  let ri=0;
+  for(let i=th.length-1;i>=0;i--){if(totalScore>=th[i]){ri=i+1;break;}}
+  if(ri>prevLevel){
+    prevLevel=ri;playerLevel=ri;
+    showLevelUp(ri);
+  }else{playerLevel=ri||1;}
+}
+
+function showLevelUp(ri){
+  const ranks=t('ranks');
+  document.getElementById('LU_title').textContent=t('lvupTitle');
+  document.getElementById('LU_rank').textContent=ranks[Math.min(ri,ranks.length-1)];
+  document.getElementById('levelupOverlay').classList.add('show');
+  playSound('levelup');
+}
+function closeLevelUp(){document.getElementById('levelupOverlay').classList.remove('show');}
+
+function confirmBack(){
+  if(confirm(lang==='ar'?'هل تريد الخروج؟ ستفقد تقدمك في هذه الجولة':'Exit? You will lose your current round progress.')){
+    if(timerInt)clearInterval(timerInt);
+    go('home');
+  }
+}
+
+function showEnd(){
+  if(timerInt)clearInterval(timerInt);
+  if(!bestRound[curSec])bestRound[curSec]=[0,0,0];
+  if(qScore>bestRound[curSec][curLv])bestRound[curSec][curLv]=qScore;
+  save();
+  document.querySelectorAll('.screen,.quiz-screen').forEach(s=>{s.classList.remove('active');s.style.display='none';});
+  const es=document.getElementById('S_end');
+  es.style.display='flex';requestAnimationFrame(()=>es.classList.add('active'));
+  window.scrollTo(0,0);
+  const pct=qCorrect/curQs.length;
+  const ri=pct>=.9?4:pct>=.75?3:pct>=.55?2:pct>=.35?1:0;
+  const trophies=['✗','III','II','I','★','♛'];
+  const ranks=t('ranks'),msgs=t('rankMsgs');
+  document.getElementById('E_trophy').textContent=trophies[Math.min(ri,4)];
+  document.getElementById('E_rank').textContent=ranks[Math.min(ri,ranks.length-1)];
+  document.getElementById('E_title').textContent=lang==='ar'?'انتهى التحدي!':'Challenge Complete!';
+  document.getElementById('E_score').textContent=qScore;
+  document.getElementById('E_correct').textContent=qCorrect+'/'+curQs.length;
+  document.getElementById('E_combo').textContent=bestCombo+' x';
+  document.getElementById('E_msg').textContent=msgs[Math.min(ri,msgs.length-1)];
+  document.getElementById('L_esc').textContent=t('esc');
+  document.getElementById('L_ecor').textContent=t('ecor');
+  document.getElementById('L_ecmb').textContent=t('ecmb');
+  document.getElementById('L_eacc').textContent=t('eacc');
+  document.getElementById('E_retry').textContent=lang==='ar'?'إعادة المحاولة':'Try Again';
+  document.getElementById('E_home').textContent=lang==='ar'?'القائمة الرئيسية':'Main Menu';
+  const accPct=Math.round(pct*100);
+  document.getElementById('E_accPct').textContent=accPct+'%';
+  // Animate ring
+  setTimeout(()=>{
+    const circ=264;
+    const offset=circ-(circ*pct);
+    document.getElementById('accRing').style.strokeDashoffset=offset;
+  },300);
+  playSound(pct>=.7?'win':'lose');
+}
+
+function retryLevel(){showLevels(curSec);}
+
+function showCombo(n,pts){
+  const p=document.getElementById('comboPop');
+  const colors=['','','#00E676','#FFD700','#FF9800','#FF1744','#E040FB'];
+  const color=colors[Math.min(n,colors.length-1)]||'#FFD700';
+  p.innerHTML=`<span style="color:${color};text-shadow:0 0 20px ${color}">COMBO ×${n}</span><br><span style="font-size:13px;color:#FFF">+${pts} pts</span>`;
+  p.classList.add('show');
+  setTimeout(()=>p.classList.remove('show'),1500);
+}
+
+function shuffle(a){return a.sort(()=>Math.random()-.5)}
+
+// ===== SOUND ENGINE =====
+let audioCtx=null;
+function getCtx(){
+  if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq,type,start,dur,gain=0.12){
+  const ctx=getCtx();if(!ctx)return;
+  const o=ctx.createOscillator(),g=ctx.createGain();
+  o.connect(g);g.connect(ctx.destination);
+  o.type=type;o.frequency.setValueAtTime(freq,ctx.currentTime+start);
+  g.gain.setValueAtTime(0,ctx.currentTime+start);
+  g.gain.linearRampToValueAtTime(gain,ctx.currentTime+start+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+start+dur);
+  o.start(ctx.currentTime+start);o.stop(ctx.currentTime+start+dur+0.05);
+}
+
+function playSound(type){
+  try{
+    if(type==='correct'){
+      playTone(523,'sine',0,.15,0.1);
+      playTone(659,'sine',.1,.15,0.1);
+      playTone(784,'sine',.2,.2,0.12);
+    }else if(type==='wrong'){
+      playTone(300,'sawtooth',0,.1,0.08);
+      playTone(200,'sawtooth',.12,.2,0.08);
+    }else if(type==='win'){
+      [523,659,784,1047,1319].forEach((f,i)=>playTone(f,'sine',i*.1,.25,0.1));
+    }else if(type==='lose'){
+      [400,350,280,220].forEach((f,i)=>playTone(f,'triangle',i*.12,.2,0.08));
+    }else if(type==='levelup'){
+      [523,659,784,1047,1319,1568].forEach((f,i)=>playTone(f,'sine',i*.08,.3,0.12));
+    }
+  }catch(e){}
+}
+
+// ===== EPIC BACKGROUND =====
+const cv=document.getElementById('bgCanvas');
+const cx=cv.getContext('2d');
+let W,H;
+
+// Particles
+const particles=[];
+const PARTICLE_COUNT=120;
+
+function resize(){
+  W=cv.width=window.innerWidth;
+  H=cv.height=window.innerHeight;
+  initParticles();
+}
+
+function initParticles(){
+  particles.length=0;
+  for(let i=0;i<PARTICLE_COUNT;i++){
+    particles.push(createParticle(true));
+  }
+}
+
+function createParticle(random=false){
+  const types=['star','orb','sparkle'];
+  const type=types[Math.floor(Math.random()*types.length)];
+  return{
+    x:random?Math.random()*W:Math.random()*W,
+    y:random?Math.random()*H:H+20,
+    vx:(Math.random()-.5)*.4,
+    vy:-(0.1+Math.random()*.5),
+    size:type==='star'?Math.random()*2+.5:type==='orb'?Math.random()*4+2:Math.random()*1.5+.5,
+    alpha:Math.random(),
+    dalpha:(.003+Math.random()*.01)*(Math.random()>.5?1:-1),
+    color:['#FFD700','#FFA500','#7B2FBE','#00BCD4','#E91E63','#FFFFFF'][Math.floor(Math.random()*6)],
+    type,pulse:Math.random()*Math.PI*2,
+    dpulse:.02+Math.random()*.04
+  };
+}
+
+// Nebula nodes
+const nebulas=[];
+for(let i=0;i<8;i++){
+  nebulas.push({
+    x:Math.random(),y:Math.random(),
+    rx:0.15+Math.random()*0.25,ry:0.1+Math.random()*0.15,
+    h:Math.random()*360,a:.02+Math.random()*.04,
+    angle:Math.random()*Math.PI*2,dangle:.0005+Math.random()*.001
+  });
+}
+
+// Shooting stars
+const shootingStars=[];
+function spawnStar(){
+  if(shootingStars.length<3&&Math.random()<.005){
+    shootingStars.push({x:Math.random()*W,y:0,vx:4+Math.random()*5,vy:3+Math.random()*4,len:80+Math.random()*120,a:1});
+  }
+}
+
+// Grid lines
+let tt=0;
+function drawBg(){
+  tt+=.005;
+  cx.clearRect(0,0,W,H);
+
+  // Deep space gradient
+  const bg=cx.createRadialGradient(W*.5,H*.3,0,W*.5,H*.5,Math.max(W,H)*.9);
+  bg.addColorStop(0,'#0d0828');
+  bg.addColorStop(.3,'#07051a');
+  bg.addColorStop(.7,'#030010');
+  bg.addColorStop(1,'#010008');
+  cx.fillStyle=bg;cx.fillRect(0,0,W,H);
+
+  // Nebulas
+  nebulas.forEach(n=>{
+    n.angle+=n.dangle;
+    const nx=n.x*W,ny=n.y*H;
+    const gd=cx.createRadialGradient(nx,ny,0,nx,ny,n.rx*W);
+    gd.addColorStop(0,`hsla(${n.h+tt*10},80%,50%,${n.a})`);
+    gd.addColorStop(.5,`hsla(${n.h+40+tt*5},60%,35%,.02)`);
+    gd.addColorStop(1,'transparent');
+    cx.fillStyle=gd;
+    cx.save();cx.translate(nx,ny);cx.rotate(n.angle);
+    cx.beginPath();cx.ellipse(0,0,n.rx*W,n.ry*H,0,0,Math.PI*2);cx.fill();
+    cx.restore();
+  });
+
+  // Perspective grid
+  cx.strokeStyle='rgba(123,47,190,0.06)';cx.lineWidth=1;
+  const gridH=H*.6,vp={x:W/2,y:gridH*.3};
+  for(let i=0;i<=20;i++){
+    const x=W*i/20;
+    cx.beginPath();cx.moveTo(x,gridH);cx.lineTo(vp.x,vp.y);cx.stroke();
+  }
+  for(let i=0;i<=12;i++){
+    const t2=i/12;const y=gridH-(gridH-vp.y)*t2;
+    const w2=(W/2)*(1-t2*.7);
+    cx.beginPath();cx.moveTo(vp.x-w2,y);cx.lineTo(vp.x+w2,y);cx.stroke();
+  }
+
+  // Particles
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;
+    p.alpha+=p.dalpha;
+    p.pulse+=p.dpulse;
+    if(p.alpha>1){p.alpha=1;p.dalpha*=-1;}
+    if(p.alpha<0||p.y<-20){particles[i]=createParticle();}
+    cx.save();cx.globalAlpha=Math.max(0,p.alpha);
+    if(p.type==='star'){
+      const sz=p.size*(1+.3*Math.sin(p.pulse));
+      cx.fillStyle=p.color;
+      cx.beginPath();cx.arc(p.x,p.y,sz,0,Math.PI*2);cx.fill();
+      if(p.alpha>.6){
+        cx.strokeStyle=p.color;cx.lineWidth=.5;cx.globalAlpha=p.alpha*.3;
+        cx.beginPath();cx.moveTo(p.x-sz*3,p.y);cx.lineTo(p.x+sz*3,p.y);cx.stroke();
+        cx.beginPath();cx.moveTo(p.x,p.y-sz*3);cx.lineTo(p.x,p.y+sz*3);cx.stroke();
+      }
+    }else if(p.type==='orb'){
+      const gd=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*2);
+      gd.addColorStop(0,p.color);gd.addColorStop(1,'transparent');
+      cx.fillStyle=gd;
+      cx.beginPath();cx.arc(p.x,p.y,p.size*2,0,Math.PI*2);cx.fill();
+    }else{
+      cx.fillStyle=p.color;cx.globalAlpha=p.alpha*.8;
+      for(let j=0;j<4;j++){
+        const a=j*Math.PI/2+p.pulse;
+        cx.beginPath();cx.arc(p.x+Math.cos(a)*p.size,p.y+Math.sin(a)*p.size,.5,0,Math.PI*2);cx.fill();
+      }
+    }
+    cx.restore();
+  }
+
+  // Shooting stars
+  spawnStar();
+  for(let i=shootingStars.length-1;i>=0;i--){
+    const s=shootingStars[i];
+    s.x+=s.vx;s.y+=s.vy;s.a-=.02;
+    if(s.a<=0||s.x>W||s.y>H){shootingStars.splice(i,1);continue;}
+    const gd=cx.createLinearGradient(s.x-s.vx*8,s.y-s.vy*8,s.x,s.y);
+    gd.addColorStop(0,'transparent');
+    gd.addColorStop(.5,`rgba(255,215,0,${s.a*.4})`);
+    gd.addColorStop(1,`rgba(255,255,255,${s.a})`);
+    cx.strokeStyle=gd;cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(s.x-s.vx*8,s.y-s.vy*8);cx.lineTo(s.x,s.y);cx.stroke();
+  }
+
+  requestAnimationFrame(drawBg);
+}
+
+window.addEventListener('resize',resize);
+resize();
+drawBg();
+load();
+go('home');
+</script>
+</body>
+</html>
